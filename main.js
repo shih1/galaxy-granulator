@@ -15,6 +15,7 @@ import {
   initTransport, initDropzone, updateLFOPhaseDisplay, updateModLED,
 } from './ui.js';
 import { loadDemoSample } from './audio.js';
+import { initKeyboard } from './keyboard.js';
 
 // ─── Initialise ────────────────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ initWindowSelector();
 initTransport();
 initDropzone();
 buildGrainDots();
+
+initKeyboard();
 
 // Seed with demo sample and initial planets
 loadDemoSample();
