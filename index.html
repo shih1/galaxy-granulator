@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRANULATOR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080a0c; --panel:#0e1218; --panel2:#141a22; --border:#1e2a38;
+    --amber:#ff9500; --amber-dim:#7a4700; --amber-glow:rgba(255,149,0,0.15);
+    --cyan:#00d4ff; --cyan-dim:#004d5e; --cyan-glow:rgba(0,212,255,0.15);
+    --violet:#a855f7; --violet-dim:#4c1d95; --violet-glow:rgba(168,85,247,0.15);
+    --red:#ff3b30; --green:#30d158; --text:#c8d8e8; --text-dim:#4a6070; --knob-bg:#1a2230;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+    font-size:11px;min-height:100vh;overflow-x:hidden;
+    background-image:
+      radial-gradient(ellipse at 50% 0%,rgba(255,149,0,0.04) 0%,transparent 60%),
+      repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,0.008) 3px,rgba(255,255,255,0.008) 4px);
+  }
+  #app{max-width:960px;margin:0 auto;padding:16px;}
+
+  /* ── Header ─────────────────────────────────────────── */
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+  .logo{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;letter-spacing:8px;color:var(--amber);text-shadow:0 0 30px rgba(255,149,0,0.6),0 0 60px rgba(255,149,0,0.2);}
+  .logo span{color:var(--text-dim);font-weight:400;font-size:11px;letter-spacing:2px;display:block;margin-top:2px;}
+  .header-right{display:flex;align-items:center;gap:16px;}
+  .status-led{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-dim);letter-spacing:1px;}
+  .led{width:7px;height:7px;border-radius:50%;background:var(--text-dim);transition:all 0.2s;}
+  .led.on-green {background:var(--green); box-shadow:0 0 8px var(--green);}
+  .led.on-amber {background:var(--amber); box-shadow:0 0 8px var(--amber);}
+  .led.on-cyan  {background:var(--cyan);  box-shadow:0 0 8px var(--cyan);}
+  .led.on-violet{background:var(--violet);box-shadow:0 0 8px var(--violet);}
+
+  /* ── Buttons ─────────────────────────────────────────── */
+  .btn{background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:6px 14px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;}
+  .btn:hover{border-color:var(--amber-dim);color:var(--amber);}
+  .btn.active{border-color:var(--amber);color:var(--amber);box-shadow:0 0 12px var(--amber-glow),inset 0 0 8px var(--amber-glow);}
+
+  /* ── Drop zone ───────────────────────────────────────── */
+  #dropzone{border:1px dashed var(--border);background:var(--panel);padding:18px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:14px;position:relative;}
+  #dropzone.dragover{border-color:var(--amber);background:var(--panel2);box-shadow:0 0 20px var(--amber-glow);}
+  #dropzone .drop-text{color:var(--text-dim);letter-spacing:2px;font-size:10px;text-transform:uppercase;}
+  #dropzone .drop-text strong{color:var(--amber);}
+  #dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+  /* ── Waveform ─────────────────────────────────────────── */
+  #waveform-container{background:var(--panel);border:1px solid var(--border);position:relative;overflow:hidden;}
+  #waveform-label{position:absolute;top:6px;left:10px;font-size:9px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;z-index:2;}
+  #waveform{width:100%;height:100px;display:block;}
+  .waveform-grid{position:absolute;inset:0;pointer-events:none;
+    background-image:linear-gradient(to right,rgba(30,42,56,0.5) 1px,transparent 1px),linear-gradient(to bottom,rgba(30,42,56,0.5) 1px,transparent 1px);
+    background-size:10% 33.33%;}
+
+  /* ── Controls grid ───────────────────────────────────── */
+  .controls-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px;}
+  .control-group{background:var(--panel);border:1px solid var(--border);padding:10px 8px 8px;display:flex;flex-direction:column;gap:10px;}
+  .group-label{font-size:8px;letter-spacing:3px;color:var(--amber);opacity:0.7;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid var(--border);text-align:center;}
+
+  /* ── Knobs ────────────────────────────────────────────── */
+  .knob-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:ns-resize;user-select:none;}
+  .knob-label{font-size:8px;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;text-align:center;}
+  .knob-value{font-size:9px;color:var(--amber);text-align:center;min-width:40px;}
+  .knob-value.cyan  {color:var(--cyan);}
+  .knob-value.violet{color:var(--violet);}
+
+  /* ── Window selector ─────────────────────────────────── */
+  .selector-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .selector-label{font-size:8px;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;}
+  .selector-buttons{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:100%;}
+  .sel-btn{background:var(--knob-bg);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;padding:4px 2px;cursor:pointer;text-align:center;transition:all 0.1s;text-transform:uppercase;}
+  .sel-btn:hover{border-color:var(--amber-dim);}
+  .sel-btn.active{border-color:var(--amber);color:var(--amber);background:rgba(255,149,0,0.08);}
+
+  /* ── Grain bar ───────────────────────────────────────── */
+  #grain-bar-container{background:var(--panel);border:1px solid var(--border);border-top:none;padding:4px 8px;display:flex;gap:2px;align-items:center;}
+  .grain-bar-label{font-size:8px;color:var(--text-dim);letter-spacing:2px;margin-right:6px;}
+  .grain-dots{display:flex;gap:2px;flex-wrap:wrap;}
+  .gdot{width:6px;height:6px;border-radius:1px;background:var(--amber-dim);transition:background 0.08s;}
+  .gdot.on{background:var(--amber);box-shadow:0 0 4px var(--amber);}
+
+  /* ── Mod section ─────────────────────────────────────── */
+  #mod-section{background:var(--panel);border:1px solid var(--border);border-top:none;margin-bottom:12px;}
+  #mod-tabs{display:flex;border-bottom:1px solid var(--border);}
+  .mod-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 12px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--text-dim);background:transparent;border:none;border-right:1px solid var(--border);transition:all 0.2s;text-transform:uppercase;}
+  .mod-tab:last-child{border-right:none;}
+  .mod-tab:hover{background:rgba(255,255,255,0.02);}
+  .mod-tab.active-lfo  {color:var(--cyan);  text-shadow:0 0 10px rgba(0,212,255,0.5);  background:rgba(0,212,255,0.04);  border-bottom:2px solid var(--cyan);  margin-bottom:-1px;}
+  .mod-tab.active-solar{color:var(--violet);text-shadow:0 0 10px rgba(168,85,247,0.5);background:rgba(168,85,247,0.04);border-bottom:2px solid var(--violet);margin-bottom:-1px;}
+
+  /* ── LFO panel ───────────────────────────────────────── */
+  #lfo-panel{display:block;} #solar-panel{display:none;}
+  #lfo-subheader,#solar-subheader{display:flex;align-items:center;gap:10px;padding:5px 10px;border-bottom:1px solid var(--border);}
+  #lfo-subheader {background:rgba(0,212,255,0.02);}
+  #solar-subheader{background:rgba(168,85,247,0.02);}
+
+  #lfo-canvas-wrap{position:relative;border-bottom:1px solid var(--border);cursor:crosshair;}
+  #lfo-canvas{display:block;width:100%;height:148px;}
+  .canvas-label{position:absolute;top:5px;left:8px;font-size:8px;letter-spacing:2px;color:rgba(0,212,255,0.25);text-transform:uppercase;pointer-events:none;}
+  .canvas-hint{position:absolute;bottom:5px;right:8px;font-size:8px;color:var(--text-dim);opacity:0.35;pointer-events:none;}
+
+  #lfo-controls{display:grid;grid-template-columns:auto auto 1fr auto auto auto auto;gap:10px;align-items:center;padding:8px 10px;}
+  .lfo-ctrl-group{display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .lfo-ctrl-label{font-size:8px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;white-space:nowrap;}
+  .lfo-divider{width:1px;height:38px;background:var(--border);}
+
+  .mini-grid{display:grid;gap:3px;}
+  .mini-btn{background:var(--knob-bg);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:0.5px;padding:3px 2px;cursor:pointer;text-align:center;transition:all 0.1s;text-transform:uppercase;}
+  .mini-btn:hover{border-color:var(--cyan-dim);color:var(--cyan);}
+  .mini-btn.ac{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.08);}
+
+  .toggle-btn{background:var(--knob-bg);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;padding:4px 8px;cursor:pointer;transition:all 0.1s;text-transform:uppercase;white-space:nowrap;}
+  .toggle-btn.ac-cyan  {border-color:var(--cyan);  color:var(--cyan);  background:rgba(0,212,255,0.08);}
+  .toggle-btn.ac-violet{border-color:var(--violet);color:var(--violet);background:rgba(168,85,247,0.08);}
+
+  .bpm-input{background:var(--knob-bg);border:1px solid var(--border);color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:bold;letter-spacing:2px;width:54px;text-align:center;padding:3px 0;outline:none;-moz-appearance:textfield;}
+  .bpm-input::-webkit-outer-spin-button,.bpm-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+  .bpm-input:focus{border-color:var(--cyan);}
+
+  /* ── Solar / Celestial panel ─────────────────────────── */
+  #solar-body{display:grid;grid-template-columns:1fr 250px;}
+  #solar-canvas-wrap{position:relative;border-right:1px solid var(--border);background:#03020a;overflow:hidden;cursor:crosshair;}
+  #solar-canvas{display:block;width:100%;height:100%;min-height:260px;}
+  .solar-ovl-label{position:absolute;top:6px;left:8px;font-size:8px;letter-spacing:2px;color:rgba(168,85,247,0.3);text-transform:uppercase;pointer-events:none;}
+  .solar-ovl-hint{position:absolute;bottom:6px;right:8px;font-size:8px;color:var(--text-dim);opacity:0.3;pointer-events:none;text-align:right;line-height:1.7;}
+  #solar-controls{display:flex;flex-direction:column;background:var(--panel2);}
+  .solar-section{padding:8px 10px;border-bottom:1px solid var(--border);}
+  .solar-section-title{font-size:8px;letter-spacing:3px;color:var(--violet);opacity:0.7;text-transform:uppercase;margin-bottom:7px;}
+  .solar-knobs-row{display:flex;gap:10px;justify-content:center;}
+  .planet-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+  .planet-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .planet-readout{font-size:8px;color:var(--text-dim);flex:1;letter-spacing:0.5px;}
+  .planet-readout span{color:var(--violet);}
+  .map-row{display:grid;grid-template-columns:20px 1fr;gap:4px;align-items:center;margin-bottom:4px;}
+  .map-axis{font-size:8px;letter-spacing:1px;color:var(--violet);opacity:0.8;text-align:right;}
+  .map-select{background:var(--knob-bg);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:8px;padding:3px 4px;outline:none;cursor:pointer;width:100%;}
+  .map-select:focus{border-color:var(--violet);}
+  #btn-add-planet,#btn-clear-planets{background:var(--knob-bg);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;padding:5px 0;cursor:pointer;text-transform:uppercase;width:100%;text-align:center;transition:all 0.1s;margin-bottom:4px;}
+  #btn-add-planet:hover  {border-color:var(--violet);color:var(--violet);background:rgba(168,85,247,0.06);}
+  #btn-clear-planets:hover{border-color:var(--red);color:var(--red);}
+
+  /* ── Bottom bar ──────────────────────────────────────── */
+  .bottom-bar{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--border);padding:8px 12px;}
+  .stat{display:flex;align-items:center;gap:8px;font-size:9px;color:var(--text-dim);letter-spacing:1px;}
+  .stat-val{color:var(--cyan);}
+  .transport{display:flex;gap:8px;align-items:center;}
+
+  /* ── Noise overlay ───────────────────────────────────── */
+  #noise-overlay{position:fixed;inset:0;pointer-events:none;z-index:999;opacity:0.03;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");}
+</style>
+</head>
+<body>
+<div id="noise-overlay"></div>
+<div id="app">
+
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <header>
+    <div class="logo">GRANULATOR<span>DSP ENGINE v3 — MSEG + CELESTIAL MOD</span></div>
+    <div class="header-right">
+      <div class="status-led"><div class="led" id="led-audio"></div><span>AUDIO</span></div>
+      <div class="status-led"><div class="led" id="led-sample"></div><span>SAMPLE</span></div>
+      <div class="status-led"><div class="led" id="led-grains"></div><span>GRAINS</span></div>
+      <div class="status-led"><div class="led" id="led-mod"></div><span>MOD</span></div>
+    </div>
+  </header>
+
+  <!-- ─── Drop zone ──────────────────────────────────────── -->
+  <div id="dropzone">
+    <div class="drop-text" id="drop-text">▼ DROP AUDIO FILE HERE OR <strong>CLICK TO BROWSE</strong> — WAV / MP3 / OGG</div>
+    <input type="file" id="file-input" accept="audio/*">
+  </div>
+
+  <!-- ─── Waveform ───────────────────────────────────────── -->
+  <div id="waveform-container">
+    <div class="waveform-grid"></div>
+    <div id="waveform-label">WAVEFORM // SAMPLE BUFFER</div>
+    <canvas id="waveform" height="100"></canvas>
+  </div>
+
+  <!-- ─── Grain activity bar ─────────────────────────────── -->
+  <div id="grain-bar-container">
+    <div class="grain-bar-label">GRAINS</div>
+    <div class="grain-dots" id="grain-dots"></div>
+    <div style="margin-left:auto;font-size:9px;color:var(--text-dim)">
+      ACTIVE: <span id="grain-count" style="color:var(--amber)">0</span> / 128
+    </div>
+  </div>
+
+  <!-- ─── Controls ───────────────────────────────────────── -->
+  <div class="controls-grid" style="margin-top:12px;">
+
+    <!-- Position -->
+    <div class="control-group">
+      <div class="group-label">Position</div>
+      <div class="knob-wrap" id="knob-position" data-param="position" data-min="0" data-max="1" data-val="0.5" data-fmt="pct">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Position</div><div class="knob-value">50%</div>
+      </div>
+      <div class="knob-wrap" id="knob-scatter" data-param="scatter" data-min="0" data-max="1" data-val="0.05" data-fmt="pct">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Scatter</div><div class="knob-value">5%</div>
+      </div>
+    </div>
+
+    <!-- Grain -->
+    <div class="control-group">
+      <div class="group-label">Grain</div>
+      <div class="knob-wrap" id="knob-density" data-param="density" data-min="0.5" data-max="100" data-val="12" data-fmt="num" data-unit="/s">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Density</div><div class="knob-value">12/s</div>
+      </div>
+      <div class="knob-wrap" id="knob-grainLength" data-param="grainLength" data-min="0.01" data-max="1.0" data-val="0.1" data-fmt="ms">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Length</div><div class="knob-value">100ms</div>
+      </div>
+    </div>
+
+    <!-- Pitch -->
+    <div class="control-group">
+      <div class="group-label">Pitch</div>
+      <div class="knob-wrap" id="knob-pitch" data-param="pitch" data-min="-24" data-max="24" data-val="0" data-fmt="st">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Pitch</div><div class="knob-value">0st</div>
+      </div>
+      <div class="knob-wrap" id="knob-pitchRand" data-param="pitchRand" data-min="0" data-max="1" data-val="0" data-fmt="pct">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Pitch Rnd</div><div class="knob-value">0%</div>
+      </div>
+    </div>
+
+    <!-- Envelope -->
+    <div class="control-group">
+      <div class="group-label">Envelope</div>
+      <div class="selector-wrap">
+        <div class="selector-label">Window</div>
+        <div class="selector-buttons">
+          <button class="sel-btn active" data-win="0">Hann</button>
+          <button class="sel-btn" data-win="1">Tri</button>
+          <button class="sel-btn" data-win="2">Tukey</button>
+          <button class="sel-btn" data-win="3">Gauss</button>
+        </div>
+      </div>
+      <div class="knob-wrap" id="knob-panSpread" data-param="panSpread" data-min="0" data-max="1" data-val="0.3" data-fmt="pct">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Pan Spread</div><div class="knob-value">30%</div>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="control-group">
+      <div class="group-label">Output</div>
+      <div class="knob-wrap" id="knob-mix" data-param="mix" data-min="0" data-max="1" data-val="1" data-fmt="pct">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Mix</div><div class="knob-value">100%</div>
+      </div>
+      <div class="knob-wrap" id="knob-direction" data-param="direction" data-min="0" data-max="1" data-val="1" data-fmt="pct">
+        <canvas class="knob-canvas" width="60" height="60"></canvas>
+        <div class="knob-label">Forward</div><div class="knob-value">100%</div>
+      </div>
+    </div>
+
+  </div><!-- /.controls-grid -->
+
+  <!-- ─── Modulation section ─────────────────────────────── -->
+  <div id="mod-section">
+    <div id="mod-tabs">
+      <button class="mod-tab active-lfo" id="tab-lfo" onclick="switchTab('lfo')"><span>∿</span> MSEG LFO</button>
+      <button class="mod-tab" id="tab-solar" onclick="switchTab('solar')"><span>✦</span> CELESTIAL ENGINE</button>
+    </div>
+
+    <!-- LFO panel -->
+    <div id="lfo-panel">
+      <div id="lfo-subheader">
+        <span style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--cyan);text-shadow:0 0 10px rgba(0,212,255,0.4)">LFO 1</span>
+        <span style="font-size:9px;color:var(--text-dim)" id="lfo-phase-display">PHASE: 0.000</span>
+        <div style="flex:1"></div>
+        <button class="toggle-btn ac-cyan" id="btn-lfo-bypass">● ACTIVE</button>
+      </div>
+      <div id="lfo-canvas-wrap">
+        <div class="canvas-label">MSEG // NODE EDITOR</div>
+        <div class="canvas-hint">DBL-CLICK: ADD · RIGHT-CLICK: DEL · DRAG ◆: TENSION</div>
+        <canvas id="lfo-canvas" height="148"></canvas>
+      </div>
+      <div id="lfo-controls">
+        <div class="lfo-ctrl-group">
+          <div class="lfo-ctrl-label">BPM</div>
+          <input type="number" id="bpm-input" class="bpm-input" value="120" min="20" max="300">
+          <div class="lfo-ctrl-label" style="opacity:0.3">TEMPO</div>
+        </div>
+        <div class="lfo-divider"></div>
+        <div class="lfo-ctrl-group" style="align-items:flex-start">
+          <div class="lfo-ctrl-label" style="margin-bottom:2px">RATE (SYNC)</div>
+          <div class="mini-grid" style="grid-template-columns:repeat(4,1fr);min-width:180px;" id="rate-grid">
+            <button class="mini-btn" data-beats="16">4/1</button>
+            <button class="mini-btn" data-beats="8">2/1</button>
+            <button class="mini-btn" data-beats="4">1/1</button>
+            <button class="mini-btn" data-beats="2">1/2</button>
+            <button class="mini-btn ac" data-beats="1">1/4</button>
+            <button class="mini-btn" data-beats="0.5">1/8</button>
+            <button class="mini-btn" data-beats="0.25">1/16</button>
+            <button class="mini-btn" data-beats="0.125">1/32</button>
+          </div>
+        </div>
+        <div class="lfo-divider"></div>
+        <div class="lfo-ctrl-group">
+          <div class="lfo-ctrl-label">DEPTH</div>
+          <div class="knob-wrap" id="knob-modDepth" data-param="modDepth" data-min="0" data-max="1" data-val="0.25" data-fmt="pct" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-value cyan">25%</div>
+          </div>
+        </div>
+        <div class="lfo-divider"></div>
+        <div class="lfo-ctrl-group" style="align-items:flex-start">
+          <div class="lfo-ctrl-label" style="margin-bottom:2px">TARGET</div>
+          <div class="mini-grid" style="grid-template-columns:repeat(3,1fr);min-width:140px;" id="target-grid">
+            <button class="mini-btn ac" data-target="0">POS</button>
+            <button class="mini-btn" data-target="1">DENS</button>
+            <button class="mini-btn" data-target="2">LEN</button>
+            <button class="mini-btn" data-target="3">PITCH</button>
+            <button class="mini-btn" data-target="4">PAN</button>
+            <button class="mini-btn" data-target="5">SCATT</button>
+          </div>
+        </div>
+        <div class="lfo-divider"></div>
+        <div class="lfo-ctrl-group" style="gap:5px">
+          <div class="lfo-ctrl-label">MODE</div>
+          <button class="toggle-btn ac-cyan" id="btn-bipolar">± BIPOLAR</button>
+          <div class="lfo-ctrl-label" style="margin-top:3px">SNAP</div>
+          <div class="mini-grid" style="grid-template-columns:repeat(3,1fr);" id="snap-grid">
+            <button class="mini-btn" data-snap="0">OFF</button>
+            <button class="mini-btn" data-snap="8">1/8</button>
+            <button class="mini-btn ac" data-snap="16">1/16</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /#lfo-panel -->
+
+    <!-- Solar panel -->
+    <div id="solar-panel">
+      <div id="solar-subheader">
+        <span style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--violet);text-shadow:0 0 10px rgba(168,85,247,0.5)">CELESTIAL ENGINE</span>
+        <span style="font-size:9px;color:var(--text-dim)" id="solar-body-count">0 BODIES</span>
+        <div style="flex:1"></div>
+        <span style="font-size:8px;color:var(--text-dim);letter-spacing:1px" id="solar-ke">KE: —</span>
+        <button class="toggle-btn ac-violet" id="btn-solar-bypass" style="margin-left:8px">◉ ACTIVE</button>
+      </div>
+      <div id="solar-body">
+        <div id="solar-canvas-wrap">
+          <div class="solar-ovl-label">N-BODY GRAVITY SIM</div>
+          <div class="solar-ovl-hint">CLICK: SPAWN PLANET<br>DRAG: SET VELOCITY<br>RIGHT-CLICK: REMOVE</div>
+          <canvas id="solar-canvas"></canvas>
+        </div>
+        <div id="solar-controls">
+          <div class="solar-section">
+            <div class="solar-section-title">Simulation</div>
+            <div class="solar-knobs-row">
+              <div class="knob-wrap" id="knob-gravity" data-param="gravity" data-min="0.0001" data-max="0.02" data-val="0.0015" data-fmt="grav" style="cursor:ns-resize">
+                <canvas class="knob-canvas" width="46" height="46"></canvas>
+                <div class="knob-label" style="font-size:7px">GRAVITY</div>
+                <div class="knob-value violet" style="font-size:8px">G</div>
+              </div>
+              <div class="knob-wrap" id="knob-simspeed" data-param="simspeed" data-min="0.1" data-max="8" data-val="1" data-fmt="spd" style="cursor:ns-resize">
+                <canvas class="knob-canvas" width="46" height="46"></canvas>
+                <div class="knob-label" style="font-size:7px">SIM SPD</div>
+                <div class="knob-value violet" style="font-size:8px">1.0x</div>
+              </div>
+              <div class="knob-wrap" id="knob-solardepth" data-param="solardepth" data-min="0" data-max="1" data-val="0.3" data-fmt="pct" style="cursor:ns-resize">
+                <canvas class="knob-canvas" width="46" height="46"></canvas>
+                <div class="knob-label" style="font-size:7px">DEPTH</div>
+                <div class="knob-value violet" style="font-size:8px">30%</div>
+              </div>
+            </div>
+          </div>
+          <div class="solar-section" style="flex:1">
+            <div class="solar-section-title">Bodies</div>
+            <div id="planet-list"></div>
+            <button id="btn-add-planet">+ SPAWN PLANET</button>
+            <button id="btn-clear-planets">✕ CLEAR ALL</button>
+          </div>
+          <div class="solar-section">
+            <div class="solar-section-title">Mapping — Planet 1</div>
+            <div class="map-row">
+              <div class="map-axis">X →</div>
+              <select class="map-select" id="map-x">
+                <option value="0">Position</option><option value="1">Density</option>
+                <option value="2">Grain Len</option><option value="3">Pitch</option>
+                <option value="4">Pan Spread</option><option value="5">Scatter</option>
+              </select>
+            </div>
+            <div class="map-row">
+              <div class="map-axis">Y →</div>
+              <select class="map-select" id="map-y">
+                <option value="0">Position</option><option value="1" selected>Density</option>
+                <option value="2">Grain Len</option><option value="3">Pitch</option>
+                <option value="4">Pan Spread</option><option value="5">Scatter</option>
+              </select>
+            </div>
+            <div class="map-row">
+              <div class="map-axis">V →</div>
+              <select class="map-select" id="map-v">
+                <option value="-1">— none —</option><option value="0">Position</option>
+                <option value="1">Density</option><option value="2">Grain Len</option>
+                <option value="3" selected>Pitch</option>
+                <option value="4">Pan Spread</option><option value="5">Scatter</option>
+              </select>
+            </div>
+          </div>
+        </div><!-- /#solar-controls -->
+      </div><!-- /#solar-body -->
+    </div><!-- /#solar-panel -->
+
+  </div><!-- /#mod-section -->
+
+  <!-- ─── Bottom bar ────────────────────────────────────── -->
+  <div class="bottom-bar">
+    <div style="display:flex;gap:20px;">
+      <div class="stat">SAMPLE <span class="stat-val" id="stat-name">—</span></div>
+      <div class="stat">DURATION <span class="stat-val" id="stat-dur">—</span></div>
+      <div class="stat">SR <span class="stat-val" id="stat-sr">—</span></div>
+    </div>
+    <div class="transport">
+      <button class="btn" id="btn-play">► PLAY</button>
+      <button class="btn" id="btn-stop">■ STOP</button>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- Entry point (ES module — imports the whole graph) -->
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
