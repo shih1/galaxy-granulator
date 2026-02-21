@@ -11,7 +11,7 @@ import { pushSolarMod } from './solar.js';
 // ─── Internal ──────────────────────────────────────────────────────────────
 
 async function _loadWorklet(ctx) {
-  const response = await fetch('./js/granular-processor.worklet.js');
+  const response = await fetch('./granular-processor.worklet.js');
   const code     = await response.text();
   const blob     = new Blob([code], { type: 'application/javascript' });
   const url      = URL.createObjectURL(blob);
