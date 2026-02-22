@@ -14,10 +14,12 @@ import { startGranulator, stopGranulator, loadAudioFile } from './audio.js';
 export function switchTab(tab) {
   state.activeTab = tab;
 
-  document.getElementById('lfo-panel').style.display   = tab === 'lfo'   ? 'block' : 'none';
-  document.getElementById('solar-panel').style.display = tab === 'solar' ? 'block' : 'none';
-  document.getElementById('tab-lfo').className   = 'mod-tab' + (tab === 'lfo'   ? ' active-lfo'   : '');
-  document.getElementById('tab-solar').className = 'mod-tab' + (tab === 'solar' ? ' active-solar' : '');
+  document.getElementById('lfo-panel').style.display    = tab === 'lfo'    ? 'block' : 'none';
+  document.getElementById('solar-panel').style.display  = tab === 'solar'  ? 'block' : 'none';
+  document.getElementById('matrix-panel').style.display = tab === 'matrix' ? 'block' : 'none';
+  document.getElementById('tab-lfo').className    = 'mod-tab' + (tab === 'lfo'    ? ' active-lfo'    : '');
+  document.getElementById('tab-solar').className  = 'mod-tab' + (tab === 'solar'  ? ' active-solar'  : '');
+  document.getElementById('tab-matrix').className = 'mod-tab' + (tab === 'matrix' ? ' active-matrix' : '');
 
   if (tab === 'lfo' && state.workletNode) {
     state.workletNode.port.postMessage({ type: 'SOLAR_MOD', enabled: false, mods: [0,0,0,0,0,0] });
@@ -30,6 +32,10 @@ export function switchTab(tab) {
       pushSolarMod();
     }
   }
+  if (tab === 'matrix' && state.workletNode) {
+    state.workletNode.port.postMessage({ type: 'SOLAR_MOD', enabled: false, mods: [0,0,0,0,0,0] });
+    state.workletNode.port.postMessage({ type: 'UPDATE_LFO_PARAMS', enabled: false });
+  }
 
   updateModLED();
 }
@@ -38,9 +44,10 @@ export function switchTab(tab) {
 
 export function updateModLED() {
   const led = document.getElementById('led-mod');
-  if (state.activeTab === 'lfo'   && lfoEnabled)   led.className = 'led on-cyan';
-  else if (state.activeTab === 'solar' && solarEnabled) led.className = 'led on-violet';
-  else led.className = 'led';
+  if      (state.activeTab === 'lfo'    && lfoEnabled)   led.className = 'led on-cyan';
+  else if (state.activeTab === 'solar'  && solarEnabled) led.className = 'led on-violet';
+  else if (state.activeTab === 'matrix')                 led.className = 'led on-amber';
+  else                                                   led.className = 'led';
 }
 
 export function updateStatusLEDs() {

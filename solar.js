@@ -369,6 +369,21 @@ solarCanvas.addEventListener('mouseup', () => {
 
 // ─── Control wiring ────────────────────────────────────────────────────────
 
+export function getPlanetSources() {
+  const out = new Float32Array(9);
+  for (let i = 0; i < 3; i++) {
+    if (i >= bodies.length) continue;
+    const p = bodies[i];
+    out[i * 3 + 0] = Math.max(-1, Math.min(1, p.x / MAX_BOUNDS));
+    out[i * 3 + 1] = Math.max(-1, Math.min(1, p.y / MAX_BOUNDS));
+    const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+    out[i * 3 + 2] = Math.min(1, spd / 4);
+  }
+  return out;
+}
+
+export function getBodyCount() { return bodies.length; }
+
 export function initSolarControls() {
   window.addEventListener('resize', () => {
     if (document.getElementById('solar-panel').style.display !== 'none') resizeSolar();

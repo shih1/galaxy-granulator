@@ -16,6 +16,7 @@ import {
 } from './ui.js';
 import { loadDemoSample } from './audio.js';
 import { initKeyboard } from './keyboard.js';
+import { initModMatrix, pushMatrixMod, updateMatrixDisplay } from './modmatrix.js';
 
 // ─── Initialise ────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ initDropzone();
 buildGrainDots();
 
 initKeyboard();
+initModMatrix();
 
 // Seed with demo sample and initial planets
 loadDemoSample();
@@ -41,14 +43,19 @@ let lastTimestamp = 0;
 function animate(timestamp) {
   const dt = Math.min(timestamp - lastTimestamp, 50);
 
+  // Physics always runs — matrix sources need live planet data regardless of tab
+  const steps = Math.max(1, Math.round(getSolarSimSpeed() * dt / 16));
+  stepPhysics(steps);
+  pushMatrixMod();
+
   if (state.activeTab === 'solar') {
-    const steps = Math.max(1, Math.round(getSolarSimSpeed() * dt / 16));
-    stepPhysics(steps);
     pushSolarMod();
     drawSolar();
     updatePlanetReadouts();
-  } else {
+  } else if (state.activeTab === 'lfo') {
     drawLFO();
+  } else if (state.activeTab === 'matrix') {
+    updateMatrixDisplay();
   }
 
   drawWaveform();

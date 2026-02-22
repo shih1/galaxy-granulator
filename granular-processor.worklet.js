@@ -60,6 +60,10 @@ class GranularProcessor extends AudioWorkletProcessor {
     this.solarEnabled = false;
     this.solarMods    = [0, 0, 0, 0, 0, 0];
 
+    // Matrix modulation state
+    this.matrixEnabled = false;
+    this.matrixMods    = new Float32Array(8);
+
     this.reportTimer = 0;
 
     this.port.onmessage = (e) => {
@@ -80,6 +84,10 @@ class GranularProcessor extends AudioWorkletProcessor {
       if (d.type === 'SOLAR_MOD') {
         this.solarEnabled = d.enabled;
         if (d.mods) this.solarMods = d.mods;
+      }
+      if (d.type === 'MOD_MATRIX') {
+        this.matrixEnabled = d.enabled;
+        if (d.mods) this.matrixMods.set(d.mods);
       }
     };
   }
@@ -201,6 +209,19 @@ class GranularProcessor extends AudioWorkletProcessor {
       for (let t = 0; t < this.solarMods.length; t++) {
         if (this.solarMods[t] !== 0) this.applyMod(p, t, this.solarMods[t]);
       }
+    }
+
+    // Apply matrix modulation (POS, SCAT, DENS, LEN, PITCH, P·RND, PAN, MIX)
+    if (this.matrixEnabled) {
+      const m = this.matrixMods;
+      p.position    = Math.max(0,    Math.min(1,   p.position    + m[0]));
+      p.scatter     = Math.max(0,    Math.min(1,   p.scatter     + m[1]));
+      p.density     = Math.max(0.5,  Math.min(100, p.density     + m[2] * 49.75));
+      p.grainLength = Math.max(0.01, Math.min(1,   p.grainLength + m[3] * 0.495));
+      p.pitch       = Math.max(-24,  Math.min(24,  p.pitch       + m[4] * 12));
+      p.pitchRand   = Math.max(0,    Math.min(1,   p.pitchRand   + m[5]));
+      p.panSpread   = Math.max(0,    Math.min(1,   p.panSpread   + m[6]));
+      p.mix         = Math.max(0,    Math.min(1,   p.mix         + m[7]));
     }
 
     const spawnInterval = sampleRate / p.density;

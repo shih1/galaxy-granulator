@@ -89,8 +89,26 @@
   .mod-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 12px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--text-dim);background:transparent;border:none;border-right:1px solid var(--border);transition:all 0.2s;text-transform:uppercase;}
   .mod-tab:last-child{border-right:none;}
   .mod-tab:hover{background:rgba(255,255,255,0.02);}
-  .mod-tab.active-lfo  {color:var(--cyan);  text-shadow:0 0 10px rgba(0,212,255,0.5);  background:rgba(0,212,255,0.04);  border-bottom:2px solid var(--cyan);  margin-bottom:-1px;}
-  .mod-tab.active-solar{color:var(--violet);text-shadow:0 0 10px rgba(168,85,247,0.5);background:rgba(168,85,247,0.04);border-bottom:2px solid var(--violet);margin-bottom:-1px;}
+  .mod-tab.active-lfo   {color:var(--cyan);  text-shadow:0 0 10px rgba(0,212,255,0.5);  background:rgba(0,212,255,0.04);  border-bottom:2px solid var(--cyan);  margin-bottom:-1px;}
+  .mod-tab.active-solar {color:var(--violet);text-shadow:0 0 10px rgba(168,85,247,0.5);background:rgba(168,85,247,0.04);border-bottom:2px solid var(--violet);margin-bottom:-1px;}
+  .mod-tab.active-matrix{color:var(--amber); text-shadow:0 0 10px rgba(255,149,0,0.5); background:rgba(255,149,0,0.04); border-bottom:2px solid var(--amber); margin-bottom:-1px;}
+  .toggle-btn.ac-amber  {border-color:var(--amber);color:var(--amber);background:rgba(255,149,0,0.08);}
+
+  /* ── Matrix panel ────────────────────────────────────── */
+  #matrix-subheader{display:flex;align-items:center;gap:10px;padding:5px 10px;border-bottom:1px solid var(--border);background:rgba(255,149,0,0.02);}
+  #matrix-content{overflow-x:auto;}
+  #mod-matrix-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  #mod-matrix-table thead th{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--amber);opacity:0.7;text-transform:uppercase;padding:5px 2px;text-align:center;font-weight:normal;border-bottom:1px solid var(--border);}
+  #mod-matrix-table thead th:first-child{width:56px;text-align:left;padding-left:8px;}
+  #mod-matrix-table tbody tr:hover .mm-cell{border-color:var(--amber-dim);}
+  .mm-src-label{width:56px;padding:4px 4px 4px 8px;font-size:8px;letter-spacing:1px;color:var(--amber);vertical-align:middle;white-space:nowrap;}
+  .mm-meter-wrap{position:relative;width:100%;height:3px;background:var(--panel2);overflow:hidden;margin-top:3px;border-radius:1px;}
+  .mm-meter-bar{position:absolute;height:100%;background:var(--amber);width:0%;left:0%;}
+  .mm-cell{position:relative;width:62px;height:32px;border:1px solid var(--border);cursor:ns-resize;overflow:hidden;padding:0;user-select:none;}
+  .mm-cell::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none;}
+  .mm-cell:hover{border-color:var(--amber-dim);}
+  .mm-bar{position:absolute;top:0;bottom:0;width:0%;left:50%;background:var(--amber);}
+  .mm-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:0.5px;color:var(--text-dim);pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,0.9);}
 
   /* ── LFO panel ───────────────────────────────────────── */
   #lfo-panel{display:block;} #solar-panel{display:none;}
@@ -271,6 +289,7 @@
     <div id="mod-tabs">
       <button class="mod-tab active-lfo" id="tab-lfo" onclick="switchTab('lfo')"><span>∿</span> MSEG LFO</button>
       <button class="mod-tab" id="tab-solar" onclick="switchTab('solar')"><span>✦</span> CELESTIAL ENGINE</button>
+      <button class="mod-tab" id="tab-matrix" onclick="switchTab('matrix')"><span>⊞</span> MOD MATRIX</button>
     </div>
 
     <!-- LFO panel -->
@@ -413,6 +432,31 @@
         </div><!-- /#solar-controls -->
       </div><!-- /#solar-body -->
     </div><!-- /#solar-panel -->
+
+    <!-- Matrix panel -->
+    <div id="matrix-panel" style="display:none">
+      <div id="matrix-subheader">
+        <span style="font-family:Orbitron,sans-serif;font-size:9px;font-weight:700;letter-spacing:3px;color:var(--amber);text-shadow:0 0 10px rgba(255,149,0,0.4)">MOD MATRIX</span>
+        <span style="font-size:9px;color:var(--text-dim)">9 SOURCES × 8 DESTINATIONS</span>
+        <div style="flex:1"></div>
+        <button class="toggle-btn ac-amber" id="btn-matrix-clear">✕ CLEAR ALL</button>
+      </div>
+      <div id="matrix-content">
+        <table id="mod-matrix-table">
+          <thead>
+            <tr>
+              <th>SOURCE</th>
+              <th>POS</th><th>SCAT</th><th>DENS</th><th>LEN</th>
+              <th>PITCH</th><th>P·RND</th><th>PAN</th><th>MIX</th>
+            </tr>
+          </thead>
+          <tbody id="matrix-body"></tbody>
+        </table>
+        <div style="padding:6px 10px;font-size:8px;color:var(--text-dim);opacity:0.45;letter-spacing:1px">
+          CLICK: TOGGLE 0↔+0.50 · DRAG ↑↓: ADJUST AMOUNT (100px = FULL) · DBL-CLICK: RESET
+        </div>
+      </div>
+    </div><!-- /#matrix-panel -->
 
   </div><!-- /#mod-section -->
 
