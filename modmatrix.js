@@ -4,7 +4,7 @@
  * Sources: P1/P2/P3 × X/Y/V  —  Destinations: POS SCAT DENS LEN PITCH P·RND PAN MIX
  */
 
-import { state } from './state.js';
+import { state, broadcastMessage } from './state.js';
 import { getPlanetSources, getBodyCount } from './solar.js';
 
 const DST_LABELS = ['POS', 'SCAT', 'DENS', 'LEN', 'PITCH', 'P·RND', 'PAN', 'MIX'];
@@ -46,7 +46,7 @@ export function pushMatrixMod() {
   for (let d = 0; d < N_DST; d++) {
     mods[d] = Math.max(-1, Math.min(1, mods[d]));
   }
-  state.workletNode.port.postMessage({ type: 'MOD_MATRIX', enabled: matrixEnabled, mods });
+  broadcastMessage({ type: 'MOD_MATRIX', enabled: matrixEnabled, mods });
 }
 
 // ─── Display updates ────────────────────────────────────────────────────────

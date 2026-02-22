@@ -7,9 +7,14 @@
 export const state = {
   // ── Audio ──────────────────────────────────────────────────
   audioCtx:      null,
-  workletNode:   null,
+  workletNode:   null,   // mono: the single node; poly: most-recently-created voice
   gainNode:      null,
   isPlaying:     false,
+
+  // ── Polyphony ──────────────────────────────────────────────
+  polyMode:         false,
+  voices:           new Map(),  // key string → AudioWorkletNode
+  voiceGrainCounts: {},         // key string → grain count
 
   // ── Sample ─────────────────────────────────────────────────
   sampleBuffer:  null,
@@ -39,10 +44,17 @@ export const state = {
   },
 };
 
-/** Shortcut to set a worklet k-rate parameter */
+/** Set a k-rate param on all active nodes (mono or poly). */
 export function setWorkletParam(name, value) {
-  const { workletNode, audioCtx } = state;
-  if (workletNode) {
-    workletNode.parameters.get(name)?.setValueAtTime(value, audioCtx?.currentTime ?? 0);
-  }
+  const { audioCtx, polyMode, voices, workletNode } = state;
+  const t     = audioCtx?.currentTime ?? 0;
+  const nodes = polyMode ? [...voices.values()] : (workletNode ? [workletNode] : []);
+  for (const node of nodes) node.parameters.get(name)?.setValueAtTime(value, t);
+}
+
+/** Post a message to all active nodes (mono or poly). */
+export function broadcastMessage(msg) {
+  const { polyMode, voices, workletNode } = state;
+  const nodes = polyMode ? [...voices.values()] : (workletNode ? [workletNode] : []);
+  for (const node of nodes) node.port.postMessage(msg);
 }

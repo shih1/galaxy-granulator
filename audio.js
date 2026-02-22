@@ -1,12 +1,14 @@
 /**
  * audio.js
  * Handles AudioContext lifecycle, worklet loading, sample decoding,
- * and play/stop transport.
+ * play/stop transport, and polyphonic voice management.
  */
 
-import { state, setWorkletParam } from './state.js';
+import { state, broadcastMessage } from './state.js';
 import { pushLFOLUT, pushLFOParams } from './lfo.js';
 import { pushSolarMod } from './solar.js';
+
+const MAX_VOICES = 8;
 
 // ─── Internal ──────────────────────────────────────────────────────────────
 
@@ -29,7 +31,7 @@ async function _ensureAudioCtx() {
   state.gainNode.connect(ctx.destination);
 }
 
-function _createWorkletNode() {
+function _createWorkletNode(pitchOverride = undefined, voiceKey = undefined) {
   const { audioCtx, gainNode, params } = state;
   const node = new AudioWorkletNode(audioCtx, 'granular-processor', {
     numberOfOutputs:    1,
@@ -38,15 +40,25 @@ function _createWorkletNode() {
 
   node.port.onmessage = (e) => {
     if (e.data.type === 'status') {
-      state.grainCount      = e.data.count;
-      state.grainPositions  = e.data.positions ?? [];
+      if (state.polyMode && voiceKey !== undefined) {
+        state.voiceGrainCounts[voiceKey] = e.data.count;
+        state.grainCount = Object.values(state.voiceGrainCounts)
+          .reduce((a, b) => a + b, 0);
+      } else {
+        state.grainCount = e.data.count;
+      }
+      state.grainPositions = e.data.positions ?? [];
       if (e.data.lfoPhase !== undefined) state.lfoPhaseDisplay = e.data.lfoPhase;
     }
   };
 
-  // Push initial parameter values
+  // Push initial parameter values from shared state
   for (const [k, v] of Object.entries(params)) {
     node.parameters.get(k)?.setValueAtTime(v, audioCtx.currentTime);
+  }
+  // Override pitch for polyphonic voices
+  if (pitchOverride !== undefined) {
+    node.parameters.get('pitch')?.setValueAtTime(pitchOverride, audioCtx.currentTime);
   }
 
   // Re-send sample if one is already loaded
@@ -58,7 +70,34 @@ function _createWorkletNode() {
   return node;
 }
 
+function _stopAllVoices() {
+  for (const node of state.voices.values()) node.disconnect();
+  state.voices.clear();
+  state.voiceGrainCounts = {};
+}
+
 // ─── Public API ────────────────────────────────────────────────────────────
+
+export async function resetAudioContext() {
+  // Tear down all active voices and the existing context
+  _stopAllVoices();
+  if (state.workletNode) {
+    state.workletNode.disconnect();
+    state.workletNode = null;
+  }
+  if (state.gainNode) {
+    state.gainNode.disconnect();
+    state.gainNode = null;
+  }
+  if (state.audioCtx) {
+    await state.audioCtx.close();
+    state.audioCtx = null;
+  }
+  state.isPlaying      = false;
+  state.grainCount     = 0;
+  state.grainPositions = [];
+  document.getElementById('btn-play').classList.remove('active');
+}
 
 export async function startGranulator() {
   await _ensureAudioCtx();
@@ -79,14 +118,89 @@ export async function startGranulator() {
 }
 
 export function stopGranulator() {
-  if (state.workletNode) {
+  if (state.polyMode) {
+    _stopAllVoices();
+  } else if (state.workletNode) {
     state.workletNode.disconnect();
-    state.workletNode = null;
   }
+  state.workletNode      = null;
+  state.isPlaying        = false;
+  state.grainCount       = 0;
+  state.grainPositions   = [];
+  document.getElementById('btn-play').classList.remove('active');
+}
+
+/** Start one polyphonic voice for the given key. */
+export async function startVoice(key, semitones) {
+  await _ensureAudioCtx();
+  if (state.audioCtx.state === 'suspended') await state.audioCtx.resume();
+
+  // Enforce voice cap (don't steal if already over limit)
+  if (state.voices.size >= MAX_VOICES && !state.voices.has(key)) return;
+
+  // Kill any existing voice for this key before replacing
+  if (state.voices.has(key)) {
+    state.voices.get(key).disconnect();
+    state.voices.delete(key);
+    delete state.voiceGrainCounts[key];
+  }
+
+  const node = _createWorkletNode(semitones, key);
+  state.voices.set(key, node);
+  state.workletNode = node;
+  state.isPlaying   = true;
+  document.getElementById('btn-play').classList.add('active');
+
+  // Initialize with current mod state (broadcast reaches all voices)
+  pushLFOLUT();
+  pushLFOParams();
+  pushSolarMod();
+}
+
+/** Stop one polyphonic voice. */
+export function stopVoice(key) {
+  const node = state.voices.get(key);
+  if (!node) return;
+
+  node.disconnect();
+  state.voices.delete(key);
+  delete state.voiceGrainCounts[key];
+
+  // Keep workletNode pointing at a live voice (for mod broadcasts)
+  state.workletNode = state.voices.size > 0
+    ? [...state.voices.values()][state.voices.size - 1]
+    : null;
+
+  state.grainCount = Object.values(state.voiceGrainCounts).reduce((a, b) => a + b, 0);
+
+  if (state.voices.size === 0) {
+    state.isPlaying      = false;
+    state.grainPositions = [];
+    document.getElementById('btn-play').classList.remove('active');
+  }
+}
+
+/** Toggle between mono and poly mode; kills all active sound on switch. */
+export function togglePolyMode() {
+  // Stop everything
+  if (state.polyMode) {
+    _stopAllVoices();
+  } else if (state.workletNode) {
+    state.workletNode.disconnect();
+  }
+  state.workletNode    = null;
   state.isPlaying      = false;
   state.grainCount     = 0;
   state.grainPositions = [];
   document.getElementById('btn-play').classList.remove('active');
+
+  state.polyMode = !state.polyMode;
+
+  const btn = document.getElementById('btn-poly');
+  if (btn) {
+    btn.textContent = state.polyMode ? '◈ POLY' : '⬧ MONO';
+    btn.classList.toggle('active', state.polyMode);
+  }
 }
 
 export async function loadAudioFile(file) {
@@ -113,9 +227,9 @@ export async function loadAudioFile(file) {
     `&#10003; <strong>${file.name}</strong> &mdash; ${decoded.duration.toFixed(2)}s loaded`;
   document.getElementById('led-sample').className  = 'led on-amber';
 
-  // Hot-swap buffer into running worklet
-  if (state.isPlaying && state.workletNode) {
-    state.workletNode.port.postMessage({ type: 'loadBuffer', buffer: mono.buffer.slice(0) });
+  // Hot-swap buffer into all running voices
+  if (state.isPlaying) {
+    broadcastMessage({ type: 'loadBuffer', buffer: mono.buffer.slice(0) });
   }
 }
 

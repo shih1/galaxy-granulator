@@ -4,10 +4,10 @@
  * window selector, and transport buttons.
  */
 
-import { state, setWorkletParam } from './state.js';
+import { state, setWorkletParam, broadcastMessage } from './state.js';
 import { lfoEnabled, pushLFOParams } from './lfo.js';
 import { solarEnabled, pushSolarMod, resizeSolar } from './solar.js';
-import { startGranulator, stopGranulator, loadAudioFile } from './audio.js';
+import { startGranulator, stopGranulator, loadAudioFile, togglePolyMode, resetAudioContext } from './audio.js';
 
 // ─── Tabs ──────────────────────────────────────────────────────────────────
 
@@ -22,19 +22,19 @@ export function switchTab(tab) {
   document.getElementById('tab-matrix').className = 'mod-tab' + (tab === 'matrix' ? ' active-matrix' : '');
 
   if (tab === 'lfo' && state.workletNode) {
-    state.workletNode.port.postMessage({ type: 'SOLAR_MOD', enabled: false, mods: [0,0,0,0,0,0] });
+    broadcastMessage({ type: 'SOLAR_MOD', enabled: false, mods: [0,0,0,0,0,0] });
     pushLFOParams();
   }
   if (tab === 'solar') {
     resizeSolar();
     if (state.workletNode) {
-      state.workletNode.port.postMessage({ type: 'UPDATE_LFO_PARAMS', enabled: false });
+      broadcastMessage({ type: 'UPDATE_LFO_PARAMS', enabled: false });
       pushSolarMod();
     }
   }
   if (tab === 'matrix' && state.workletNode) {
-    state.workletNode.port.postMessage({ type: 'SOLAR_MOD', enabled: false, mods: [0,0,0,0,0,0] });
-    state.workletNode.port.postMessage({ type: 'UPDATE_LFO_PARAMS', enabled: false });
+    broadcastMessage({ type: 'SOLAR_MOD', enabled: false, mods: [0,0,0,0,0,0] });
+    broadcastMessage({ type: 'UPDATE_LFO_PARAMS', enabled: false });
   }
 
   updateModLED();
@@ -95,10 +95,13 @@ export function initWindowSelector() {
 // ─── Transport ─────────────────────────────────────────────────────────────
 
 export function initTransport() {
-  document.getElementById('btn-play').addEventListener('click', () =>
-    state.isPlaying ? stopGranulator() : startGranulator()
-  );
+  document.getElementById('btn-play').addEventListener('click', () => {
+    if (state.polyMode) return;  // keyboard is the input in poly mode
+    state.isPlaying ? stopGranulator() : startGranulator();
+  });
   document.getElementById('btn-stop').addEventListener('click', stopGranulator);
+  document.getElementById('btn-poly').addEventListener('click', togglePolyMode);
+  document.getElementById('btn-reset-ctx').addEventListener('click', resetAudioContext);
 }
 
 // ─── Dropzone ──────────────────────────────────────────────────────────────

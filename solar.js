@@ -4,7 +4,7 @@
  * Planets orbit a central sun; their X/Y/V positions map to synth parameters.
  */
 
-import { state } from './state.js';
+import { state, broadcastMessage } from './state.js';
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -112,7 +112,7 @@ function computeSolarMods() {
 
 export function pushSolarMod() {
   if (!state.workletNode) return;
-  state.workletNode.port.postMessage({
+  broadcastMessage({
     type:    'SOLAR_MOD',
     enabled: solarEnabled && state.activeTab === 'solar',
     mods:    computeSolarMods(),

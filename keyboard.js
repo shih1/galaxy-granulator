@@ -8,12 +8,12 @@
  * Black keys:  W  E     T  Y  U     O  P
  *              C# D#    F# G# A#    C# D#
  *
- * Keydown → set pitch + start granulator (if not already playing).
- * Keyup   → stop granulator.
+ * Mono:  keydown → set pitch param + start if needed; keyup → stop.
+ * Poly:  keydown → spawn independent voice; keyup → release that voice.
  */
 
 import { state, setWorkletParam } from './state.js';
-import { startGranulator, stopGranulator } from './audio.js';
+import { startGranulator, stopGranulator, startVoice, stopVoice } from './audio.js';
 import { drawKnob } from './knobs.js';
 
 // ─── Key → semitone offset (relative to C) ─────────────────────────────────
@@ -39,7 +39,8 @@ const KEY_SEMITONES = {
 
 // ─── Internal ───────────────────────────────────────────────────────────────
 
-let activeKey = null;
+let activeKey  = null;        // mono: currently sounding key
+let activeKeys = new Set();   // poly: all currently held keys
 
 function updatePitchKnob(semitones) {
   const wrap = document.getElementById('knob-pitch');
@@ -61,27 +62,38 @@ function updatePitchKnob(semitones) {
 
 export function initKeyboard() {
   document.addEventListener('keydown', (e) => {
-    // Don't intercept when typing in a form field
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-    // Ignore key-repeat events
     if (e.repeat) return;
 
     const key = e.key.toLowerCase();
     if (!(key in KEY_SEMITONES)) return;
-
     e.preventDefault();
-    activeKey = key;
 
     const semitones = KEY_SEMITONES[key];
-    updatePitchKnob(semitones);
-    setWorkletParam('pitch', semitones);
 
-    if (!state.isPlaying) startGranulator();
+    if (state.polyMode) {
+      if (activeKeys.has(key)) return;
+      activeKeys.add(key);
+      startVoice(key, semitones);
+    } else {
+      activeKey = key;
+      updatePitchKnob(semitones);
+      setWorkletParam('pitch', semitones);
+      if (!state.isPlaying) startGranulator();
+    }
   });
 
   document.addEventListener('keyup', (e) => {
-    if (e.key.toLowerCase() !== activeKey) return;
-    activeKey = null;
-    stopGranulator();
+    const key = e.key.toLowerCase();
+    if (!(key in KEY_SEMITONES)) return;
+
+    if (state.polyMode) {
+      activeKeys.delete(key);
+      stopVoice(key);
+    } else {
+      if (key !== activeKey) return;
+      activeKey = null;
+      stopGranulator();
+    }
   });
 }

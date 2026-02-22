@@ -4,7 +4,7 @@
  * LUT compilation, and worklet communication.
  */
 
-import { state } from './state.js';
+import { state, broadcastMessage, setWorkletParam } from './state.js';
 
 // ─── State ─────────────────────────────────────────────────────────────────
 
@@ -44,13 +44,13 @@ function compileLFO() {
 export function pushLFOLUT() {
   if (!state.workletNode || state.activeTab !== 'lfo') return;
   const lut = compileLFO();
-  state.workletNode.port.postMessage({ type: 'UPDATE_LFO_LUT', lut: lut.buffer }, [lut.buffer.slice(0)]);
+  broadcastMessage({ type: 'UPDATE_LFO_LUT', lut: lut.buffer.slice(0) });
 }
 
 export function pushLFOParams(overrides = {}) {
   if (!state.workletNode || state.activeTab !== 'lfo') return;
   const freq = (lfoBPM / 60) / lfoBeats;
-  state.workletNode.port.postMessage({
+  broadcastMessage({
     type: 'UPDATE_LFO_PARAMS',
     freq,
     target:  lfoTarget,
@@ -59,10 +59,7 @@ export function pushLFOParams(overrides = {}) {
     ...overrides,
   });
   const dw = document.getElementById('knob-modDepth');
-  if (dw) {
-    state.workletNode.parameters.get('modDepth')
-      ?.setValueAtTime(parseFloat(dw.dataset.val), state.audioCtx?.currentTime ?? 0);
-  }
+  if (dw) setWorkletParam('modDepth', parseFloat(dw.dataset.val));
 }
 
 // ─── Canvas ────────────────────────────────────────────────────────────────
