@@ -6,7 +6,7 @@
 
 import { state, setWorkletParam } from './state.js';
 import { lfoEnabled, pushLFOParams } from './lfo.js';
-import { solarEnabled, pushSolarMod } from './solar.js';
+import { solarEnabled, pushSolarMod, resizeSolar } from './solar.js';
 import { startGranulator, stopGranulator, loadAudioFile } from './audio.js';
 
 // ─── Tabs ──────────────────────────────────────────────────────────────────
@@ -23,9 +23,12 @@ export function switchTab(tab) {
     state.workletNode.port.postMessage({ type: 'SOLAR_MOD', enabled: false, mods: [0,0,0,0,0,0] });
     pushLFOParams();
   }
-  if (tab === 'solar' && state.workletNode) {
-    state.workletNode.port.postMessage({ type: 'UPDATE_LFO_PARAMS', enabled: false });
-    pushSolarMod();
+  if (tab === 'solar') {
+    resizeSolar();
+    if (state.workletNode) {
+      state.workletNode.port.postMessage({ type: 'UPDATE_LFO_PARAMS', enabled: false });
+      pushSolarMod();
+    }
   }
 
   updateModLED();

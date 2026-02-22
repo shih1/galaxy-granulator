@@ -370,7 +370,9 @@ solarCanvas.addEventListener('mouseup', () => {
 // ─── Control wiring ────────────────────────────────────────────────────────
 
 export function initSolarControls() {
-  setTimeout(resizeSolar, 0);
+  window.addEventListener('resize', () => {
+    if (document.getElementById('solar-panel').style.display !== 'none') resizeSolar();
+  });
 
   document.getElementById('btn-add-planet').addEventListener('click', () => {
     const a   = Math.random() * Math.PI * 2;
