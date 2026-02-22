@@ -59,16 +59,18 @@ export function drawWaveform() {
   ctx.lineWidth   = 1;
   ctx.stroke();
 
-  // Active grain overlays
-  for (const gp of state.grainPositions) {
-    const gx = (gp.sampleStart / data.length) * W;
-    const gl = (gp.length * 44100) / data.length * W;
-    ctx.fillStyle = 'rgba(0,212,255,0.05)';
-    ctx.fillRect(gx, 0, gl, H);
-    const px = gx + gp.phase * gl;
-    ctx.strokeStyle = 'rgba(0,212,255,0.6)';
-    ctx.lineWidth   = 1;
-    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+  // Active grain overlays — only while playing
+  if (state.isPlaying) {
+    for (const gp of state.grainPositions) {
+      const gx = (gp.sampleStart / data.length) * W;
+      const gl = (gp.length * 44100) / data.length * W;
+      ctx.fillStyle = 'rgba(0,212,255,0.05)';
+      ctx.fillRect(gx, 0, gl, H);
+      const px = gx + gp.phase * gl;
+      ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+      ctx.lineWidth   = 1;
+      ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+    }
   }
 
   // Position marker

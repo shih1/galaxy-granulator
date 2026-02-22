@@ -12,7 +12,7 @@ export const state = {
   isPlaying:     false,
 
   // ── Polyphony ──────────────────────────────────────────────
-  polyMode:         false,
+  polyMode:         true,
   voices:           new Map(),  // key string → AudioWorkletNode
   voiceGrainCounts: {},         // key string → grain count
 
@@ -33,7 +33,7 @@ export const state = {
     position:    0.5,
     scatter:     0.05,
     density:     12,
-    grainLength: 0.1,
+    grainLength: 0.5,
     pitch:       0,
     pitchRand:   0,
     panSpread:   0.3,

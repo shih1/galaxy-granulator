@@ -18,6 +18,7 @@ import { loadDemoSample } from './audio.js';
 import { initKeyboard } from './keyboard.js';
 import { initModMatrix, pushMatrixMod, updateMatrixDisplay } from './modmatrix.js';
 import { initPerfMonitor, updatePerfMonitor } from './perf.js';
+import { initKeyboardVis, drawKeyboardVis } from './keyboard-vis.js';
 
 // ─── Initialise ────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ buildGrainDots();
 initKeyboard();
 initModMatrix();
 initPerfMonitor();
+initKeyboardVis();
 
 // Seed with demo sample and initial planets
 loadDemoSample();
@@ -66,6 +68,7 @@ function animate(timestamp) {
   if (state.activeTab === 'lfo') updateLFOPhaseDisplay();
 
   updateModLED();
+  drawKeyboardVis();
   updatePerfMonitor(timestamp);
   lastTimestamp = timestamp;
   requestAnimationFrame(animate);

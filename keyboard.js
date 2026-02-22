@@ -39,8 +39,8 @@ const KEY_SEMITONES = {
 
 // ─── Internal ───────────────────────────────────────────────────────────────
 
-let activeKey  = null;        // mono: currently sounding key
-let activeKeys = new Set();   // poly: all currently held keys
+let activeKey  = null;               // mono: currently sounding key
+export let activeKeys = new Set();   // poly: all currently held keys
 
 function updatePitchKnob(semitones) {
   const wrap = document.getElementById('knob-pitch');

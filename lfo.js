@@ -190,8 +190,8 @@ export function drawLFO() {
     }
   });
 
-  // Phase playhead
-  if (lfoEnabled && state.activeTab === 'lfo') {
+  // Phase playhead — only while playing
+  if (state.isPlaying && lfoEnabled && state.activeTab === 'lfo') {
     const phX = state.lfoPhaseDisplay * W;
     ctx.strokeStyle = 'rgba(255,149,0,0.8)';
     ctx.lineWidth   = 1.5;
