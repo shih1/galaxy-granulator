@@ -185,20 +185,29 @@
   .perf-val{font-size:9px;color:var(--cyan);letter-spacing:1px;text-align:right;}
 
   /* ── Keyboard visualizer ─────────────────────────────── */
-  #kbd-vis-section{background:var(--panel);border:1px solid var(--border);border-top:none;padding:12px 14px 14px;}
-  .kbd-section-label{font-size:8px;letter-spacing:3px;color:var(--amber);opacity:0.7;text-transform:uppercase;margin-bottom:10px;}
-  #kbd-rows{display:flex;flex-direction:column;gap:3px;}
-  .kbd-row{display:flex;gap:3px;}
-  .kbd-key{display:flex;flex-direction:column;align-items:center;justify-content:center;width:34px;height:54px;background:var(--knob-bg);border:1px solid var(--border);font-family:'Share Tech Mono',monospace;cursor:default;flex-shrink:0;transition:border-color 0.05s,background 0.05s;}
-  .kbd-key.kbd-wide{width:52px;}
-  .kbd-key.kbd-extra-wide{width:70px;}
-  .kbd-key.kbd-disabled{opacity:0.2;cursor:not-allowed;}
-  .kbd-key.kbd-capable{border-color:var(--border);}
-  .kbd-key.kbd-pressed{background:var(--amber);border-color:var(--amber);box-shadow:0 0 10px var(--amber-glow);}
-  .kbd-note{font-size:8px;color:var(--cyan);letter-spacing:0.5px;line-height:1;}
-  .kbd-label{font-size:10px;color:var(--text-dim);letter-spacing:1px;margin-top:3px;}
-  .kbd-key.kbd-pressed .kbd-note{color:#3a1f00;}
-  .kbd-key.kbd-pressed .kbd-label{color:#3a1f00;}
+  #kbd-vis-section{background:var(--panel);border:1px solid var(--border);border-top:none;padding:14px 16px 18px;}
+  .kbd-section-label{font-size:8px;letter-spacing:3px;color:var(--amber);opacity:0.7;text-transform:uppercase;margin-bottom:12px;}
+  #kbd-rows{display:flex;flex-direction:column;gap:5px;}
+  .kbd-row{display:flex;gap:5px;width:100%;}
+  .kbd-key{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;height:64px;background:var(--knob-bg);border:1px solid var(--border);font-family:'Share Tech Mono',monospace;cursor:default;overflow:hidden;transition:background 0.06s,border-color 0.06s,box-shadow 0.06s;}
+  .kbd-key.kbd-disabled{opacity:0.15;cursor:not-allowed;}
+  .kbd-key.kbd-capable{border-color:rgba(255,149,0,0.18);}
+  .kbd-key.kbd-pressed{background:var(--amber);border-color:var(--amber);box-shadow:0 0 14px var(--amber-glow),inset 0 0 10px rgba(255,255,255,0.08);}
+  .kbd-note{font-size:9px;color:var(--cyan);letter-spacing:0.5px;line-height:1;}
+  .kbd-label{font-size:12px;color:var(--text-dim);letter-spacing:1px;margin-top:5px;}
+  .kbd-key.kbd-capable .kbd-label{color:var(--text);}
+  .kbd-key.kbd-pressed .kbd-note,.kbd-key.kbd-pressed .kbd-label{color:rgba(0,0,0,0.75);}
+
+  /* ── Sound design panel ──────────────────────────────── */
+  #fx-panel{overflow:hidden;max-height:0;opacity:0;transition:max-height 0.38s cubic-bezier(0.4,0,0.2,1),opacity 0.28s ease;margin-bottom:0;}
+  #fx-panel.fx-open{max-height:260px;opacity:1;margin-bottom:14px;}
+  .fx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:var(--panel2);border:1px solid var(--border);padding:12px 14px;}
+  .fx-section{display:flex;flex-direction:column;gap:8px;}
+  .fx-section-title{font-size:8px;letter-spacing:3px;color:var(--amber);opacity:0.8;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .fx-knobs{display:flex;gap:10px;justify-content:center;}
+  #btn-fx{margin-left:12px;}
+  #btn-fx.fx-active{border-color:var(--amber);color:var(--amber);box-shadow:0 0 12px var(--amber-glow),inset 0 0 8px var(--amber-glow);}
+  .fx-vis{display:block;width:100%;height:56px;background:var(--bg);border:1px solid var(--border);border-radius:2px;}
 
   /* ── Noise overlay ───────────────────────────────────── */
   #noise-overlay{position:fixed;inset:0;pointer-events:none;z-index:999;opacity:0.03;
@@ -217,8 +226,68 @@
       <div class="status-led"><div class="led" id="led-sample"></div><span>SAMPLE</span></div>
       <div class="status-led"><div class="led" id="led-grains"></div><span>GRAINS</span></div>
       <div class="status-led"><div class="led" id="led-mod"></div><span>MOD</span></div>
+      <button class="btn" id="btn-fx">⬡ SOUND DESIGN</button>
     </div>
   </header>
+
+  <!-- ─── Sound design panel ────────────────────────────── -->
+  <div id="fx-panel">
+    <div class="fx-grid">
+
+      <!-- REVERB -->
+      <div class="fx-section">
+        <div class="fx-section-title">∿ REVERB</div>
+        <canvas class="fx-vis" id="fx-vis-reverb"></canvas>
+        <div class="fx-knobs">
+          <div class="knob-wrap fx-knob" data-fx-section="reverb" data-fx-param="wet" data-min="0" data-max="1" data-val="0.25" data-default="0.25" data-fmt="pct" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-label">WET</div><div class="knob-value">25%</div>
+          </div>
+          <div class="knob-wrap fx-knob" data-fx-section="reverb" data-fx-param="decay" data-min="0.1" data-max="8" data-val="2.5" data-default="2.5" data-fmt="s" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-label">DECAY</div><div class="knob-value">2.5s</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EQ -->
+      <div class="fx-section">
+        <div class="fx-section-title">≋ EQ</div>
+        <canvas class="fx-vis" id="fx-vis-eq"></canvas>
+        <div class="fx-knobs">
+          <div class="knob-wrap fx-knob" data-fx-section="eq" data-fx-param="low" data-min="-12" data-max="12" data-val="0" data-default="0" data-fmt="db" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-label">LOW</div><div class="knob-value cyan">0.0 dB</div>
+          </div>
+          <div class="knob-wrap fx-knob" data-fx-section="eq" data-fx-param="mid" data-min="-12" data-max="12" data-val="0" data-default="0" data-fmt="db" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-label">MID</div><div class="knob-value cyan">0.0 dB</div>
+          </div>
+          <div class="knob-wrap fx-knob" data-fx-section="eq" data-fx-param="high" data-min="-12" data-max="12" data-val="0" data-default="0" data-fmt="db" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-label">HIGH</div><div class="knob-value cyan">0.0 dB</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIGITAL CLIPPER -->
+      <div class="fx-section">
+        <div class="fx-section-title">⚡ DIGITAL CLIP</div>
+        <canvas class="fx-vis" id="fx-vis-clip"></canvas>
+        <div class="fx-knobs">
+          <div class="knob-wrap fx-knob" data-fx-section="clipper" data-fx-param="drive" data-min="1" data-max="20" data-val="1" data-default="1" data-fmt="x" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-label">DRIVE</div><div class="knob-value">1.0x</div>
+          </div>
+          <div class="knob-wrap fx-knob" data-fx-section="clipper" data-fx-param="mix" data-min="0" data-max="1" data-val="0" data-default="0" data-fmt="pct" style="cursor:ns-resize">
+            <canvas class="knob-canvas" width="52" height="52"></canvas>
+            <div class="knob-label">MIX</div><div class="knob-value">0%</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <!-- ─── Drop zone ──────────────────────────────────────── -->
   <div id="dropzone">

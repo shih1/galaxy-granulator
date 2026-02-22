@@ -7,6 +7,7 @@
 import { state, broadcastMessage } from './state.js';
 import { pushLFOLUT, pushLFOParams } from './lfo.js';
 import { pushSolarMod } from './solar.js';
+import { buildFXChain } from './effects.js';
 
 const MAX_VOICES = 8;
 
@@ -28,7 +29,9 @@ async function _ensureAudioCtx() {
   await _loadWorklet(ctx);
   state.gainNode     = ctx.createGain();
   state.gainNode.gain.value = 0.7;
-  state.gainNode.connect(ctx.destination);
+  const { inputNode, outputNode } = buildFXChain(ctx);
+  state.gainNode.connect(inputNode);
+  outputNode.connect(ctx.destination);
 }
 
 function _createWorkletNode(pitchOverride = undefined, voiceKey = undefined) {

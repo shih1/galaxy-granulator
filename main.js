@@ -19,6 +19,7 @@ import { initKeyboard } from './keyboard.js';
 import { initModMatrix, pushMatrixMod, updateMatrixDisplay } from './modmatrix.js';
 import { initPerfMonitor, updatePerfMonitor } from './perf.js';
 import { initKeyboardVis, drawKeyboardVis } from './keyboard-vis.js';
+import { initFXKnobs, initFXVisualizations } from './effects.js';
 
 // ─── Initialise ────────────────────────────────────────────────────────────
 
@@ -35,6 +36,21 @@ initKeyboard();
 initModMatrix();
 initPerfMonitor();
 initKeyboardVis();
+initFXKnobs();
+
+const _fxPanel = document.getElementById('fx-panel');
+const _fxBtn   = document.getElementById('btn-fx');
+let _fxVisInited = false;
+_fxBtn.addEventListener('click', () => {
+  const open = _fxPanel.classList.toggle('fx-open');
+  _fxBtn.classList.toggle('fx-active', open);
+  if (open && !_fxVisInited) {
+    _fxVisInited = true;
+    // Defer until after the CSS transition reveals the canvases so
+    // offsetWidth is non-zero when we size them
+    setTimeout(initFXVisualizations, 40);
+  }
+});
 
 // Seed with demo sample and initial planets
 loadDemoSample();
